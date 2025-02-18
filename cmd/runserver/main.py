@@ -1,5 +1,5 @@
 # 这是一个示例 Python 脚本。
-from app import setting
+from app.settings import settings
 
 
 # 按 Shift+F10 执行或将其替换为您的代码。
@@ -14,6 +14,6 @@ def print_hi(name):
 # 按装订区域中的绿色按钮以运行脚本。
 if __name__ == '__main__':
     print_hi('PyCharm')
-    print_hi(setting.Bot.TOKEN)
+    print_hi(settings.DB_PORT)
 
 # 访问 https://www.jetbrains.com/help/pycharm/ 获取 PyCharm 帮助

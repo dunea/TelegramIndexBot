@@ -1,4 +1,4 @@
-# TgIndexIndexBot
+# TelegramIndexBot
 
 ## Alembic 迁移
 
