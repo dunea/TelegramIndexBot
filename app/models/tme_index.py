@@ -34,7 +34,7 @@ class TmeIndex(Base):
     username: Mapped[str] = mapped_column(String(32), unique=True, nullable=False, index=True)
     type: Mapped[TmeIndexType] = mapped_column(Enum(TmeIndexType, length=32), nullable=False, index=True)
     nickname: Mapped[str] = mapped_column(String(255), nullable=False)
-    desc: Mapped[str] = mapped_column(String(255), nullable=False)
+    desc: Mapped[str] = mapped_column(String(255))
     count_members: Mapped[int] = mapped_column(Integer, default=0)
     count_view: Mapped[int] = mapped_column(Integer, default=0)
     invalid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, index=True)

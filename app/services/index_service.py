@@ -19,8 +19,38 @@ class IndexService:
         self.meilisearch = meilisearch
         self.tme_scraper = tme_scraper
     
-    # 添加索引用户名
+    # 添加索引于详细信息
+    def add_index_by_detail(self, detail: schemas.TmeIndexCreate) -> schemas.TmeIndexBase:
+        with Session() as session:
+            try:
+                index = models.TmeIndex(
+                    username=detail.username,
+                    nickname=detail.nickname,
+                    desc=detail.desc,
+                    type=detail.type,
+                    count_members=detail.count_members,
+                    last_gather_at=datetime.now(timezone.utc),
+                )
+                session.add(index)
+                session.commit()
+                session.refresh(index)
+            except Exception as e:
+                logger.error(f"添加到数据库发生错误: {e}")
+                raise Exception("添加到数据库发生错误")
+            
+            try:
+                index_schema = schemas.TmeIndexBase.model_validate(index)
+                self.meilisearch.index.add_documents([index_schema.model_dump(mode='json')], primary_key="id")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"添加到搜索引擎发生错误: {e}")
+                raise Exception("添加到搜索引擎发生错误")
+        
+        return index_schema
+    
+    # 添加索引于用户名
     def add_index_by_tme(self, username: str) -> schemas.TmeIndexBase:
+        username = username.strip()
         if len(username) < 4 or len(username) > 32:
             logger.debug(f"用户名长度为4 ~ 32个字符: {username}")
             raise ValueError("用户名长度为4 ~ 32个字符")
@@ -56,34 +86,15 @@ class IndexService:
             logger.debug(f"不支持的收录类型: {username}")
             raise ValueError("不支持的收录类型")
         
-        with Session() as session:
-            # 添加
-            try:
-                index = models.TmeIndex(
-                    username=username,
-                    nickname=tme_info.nickname,
-                    desc=tme_info.description,
-                    type=tme_type,
-                    last_gather_at=datetime.now(timezone.utc),
-                )
-                session.add(index)
-                session.commit()
-                session.refresh(index)
-            except Exception as e:
-                logger.error(f"添加到数据库发生错误: {e}")
-                raise Exception("添加到数据库发生错误")
-            
-            try:
-                index_schema = schemas.TmeIndexBase.model_validate(index)
-                self.meilisearch.index.add_documents([index_schema.model_dump(mode='json')], primary_key="id")
-            except Exception as e:
-                session.rollback()
-                logger.error(f"添加到搜索引擎发生错误: {e}")
-                raise Exception("添加到搜索引擎发生错误")
-        
-        return index_schema
+        return self.add_index_by_detail(schemas.TmeIndexCreate(
+            type=tme_type,
+            username=username,
+            nickname=tme_info.nickname,
+            desc=tme_info.description,
+            count_members=tme_info.count_members if tme_info.count_members is not None else 0,
+        ))
     
-    # 添加索引链接
+    # 添加索引于链接
     def add_index_by_tme_link(self, tme_link: str) -> schemas.TmeIndexBase:
         # 正则获取tme_link
         usernames = []

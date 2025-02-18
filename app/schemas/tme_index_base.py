@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, ConfigDict
 from datetime import datetime
 from typing import Optional, List
 from app.models import TmeIndex, TmeIndexType  # 假设 TmeIndex 和 TmeIndexType 已定义
@@ -7,6 +7,8 @@ from app.schemas.paging_base import PagingBase
 
 # Pydantic模型
 class TmeIndexBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
     id: str
     username: str
     type: TmeIndexType
@@ -18,10 +20,6 @@ class TmeIndexBase(BaseModel):
     last_gather_at: Optional[datetime]
     create_at: datetime
     update_at: datetime
-    
-    # 通过设置 orm_mode 来支持从 SQLAlchemy 实例加载数据
-    class Config:
-        orm_mode = True
 
 
 class TmeIndexBaseList(PagingBase):
@@ -34,5 +32,9 @@ class TmeIndexResponse(TmeIndexBase):
 
 
 # 用于接收和创建的模型
-class TmeIndexCreate(TmeIndexBase):
-    pass
+class TmeIndexCreate(BaseModel):
+    type: TmeIndexType = Field(...)
+    username: str = Field(...)
+    nickname: str = Field(...)
+    desc: str = Field(default=0)
+    count_members: int = Field(...)

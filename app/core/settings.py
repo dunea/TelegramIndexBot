@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     # Smartdaili
     SMARTDAILI_SCRAPER_TOKEN: str = Field(..., env="SMARTDAILI_SCRAPER_TOKEN")
     
+    # Api
+    API_KEY: str = Field(..., env="API_KEY")
+    
     class Config:
         env_file = ".env"  # 指定 .env 文件路径
         env_file_encoding = 'utf-8'
