@@ -23,7 +23,7 @@ def upgrade() -> None:
     op.create_table('tme_index',
     sa.Column('id', sa.String(length=36), nullable=False),
     sa.Column('username', sa.String(length=32), nullable=False),
-    sa.Column('type', sa.Enum('GROUP', 'CHANNEL', name='tmeindextype', length=32), nullable=False),
+    sa.Column('type', sa.Enum('GROUP', 'CHANNEL', 'BOT', name='tmeindextype', length=32), nullable=False),
     sa.Column('nickname', sa.String(length=255), nullable=False),
     sa.Column('desc', sa.String(length=255), nullable=False),
     sa.Column('count_members', sa.Integer(), nullable=False),
