@@ -1,5 +1,5 @@
 # 这是一个示例 Python 脚本。
-from app.core.settings import settings
+from app.core import settings
 
 
 # 按 Shift+F10 执行或将其替换为您的代码。
