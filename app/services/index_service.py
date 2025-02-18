@@ -21,7 +21,22 @@ class IndexService:
     
     # 添加索引于详细信息
     def add_index_by_detail(self, detail: schemas.TmeIndexCreate) -> schemas.TmeIndexBase:
-        with Session() as session:
+        with self.session() as session:
+            # 查询
+            try:
+                index_ = session.query(models.TmeIndex).filter(
+                    models.TmeIndex.username == detail.username).one_or_none()
+            except Exception as e:
+                logger.error(f"查询索引发生错误: {e}")
+                raise Exception("查询索引发生错误")
+            if index_ is not None:
+                try:
+                    return schemas.TmeIndexBase.model_validate(index_)
+                except Exception as e:
+                    logger.error(f"序列化索引发生错误: {e}")
+                    raise Exception("序列化索引发生错误")
+            
+            # 增加
             try:
                 index = models.TmeIndex(
                     username=detail.username,
@@ -112,6 +127,27 @@ class IndexService:
             raise ValueError("每次仅能添加1个Telegram链接")
         
         return self.add_index_by_tme(usernames[0])
+    
+    # 删除索引于ID
+    def del_index_by_id(self, _id: str) -> None:
+        with self.session() as session:
+            # 查询
+            try:
+                index_ = session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).one_or_none()
+            except Exception as e:
+                logger.error(f"查询索引发生错误: {e}")
+                raise Exception("查询索引发生错误")
+            
+            if index_ is None:
+                logger.info(f"删除的索引不存在: {_id}")
+                raise ValueError("删除的索引不存在")
+            
+            try:
+                self.meilisearch.index.delete_document(_id)
+            except Exception as e:
+                session.rollback()
+                logger.error(f"从搜索引擎删除发生错误: {e}")
+                raise Exception("从搜索引擎删除发生错误")
     
     # 搜索索引
     def search_index(self, keywords: str, _type: models.TmeIndexType, page: int = 1,

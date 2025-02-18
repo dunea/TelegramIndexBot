@@ -3,6 +3,7 @@ from sqlalchemy.orm import Session, scoped_session
 from app.core.database import Database
 from app.core.meilisearch import MeiliSearch
 from app.core.settings import settings
+from app.core.tme_scraper import TmeScraper
 
 
 class DatabaseProvider(Module):
@@ -12,7 +13,7 @@ class DatabaseProvider(Module):
         return Database(
             settings.DB_USER,
             settings.DB_PASSWORD,
-            settings.DB_HOST,
+            settings.DB_IP,
             settings.DB_PORT,
             settings.DB_NAME,
         ).session
@@ -28,5 +29,12 @@ class MeiliSearchProvider(Module):
         )
 
 
+class TmeScraperProvider(Module):
+    @singleton
+    @provider
+    def provide_session(self) -> TmeScraper:
+        return TmeScraper(token=settings.SMARTDAILI_SCRAPER_TOKEN)
+
+
 # 创建 Injector 实例并注入依赖
-di = Injector([DatabaseProvider()])
+di = Injector([DatabaseProvider(), MeiliSearchProvider(), TmeScraperProvider()])
