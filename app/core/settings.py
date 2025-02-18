@@ -17,6 +17,13 @@ class Settings(BaseSettings):
     DB_PASSWORD: str = Field(..., env="DB_PASSWORD")
     DB_NAME: str = Field(..., env="DB_NAME")
     
+    # MeiliSearch
+    MEILISEARCH_API_KEY: str = Field(..., env="MEILISEARCH_API_KEY")
+    MEILISEARCH_API_URL: str = Field(..., env="MEILISEARCH_API_URL")
+    
+    # Smartdaili
+    SMARTDAILI_SCRAPER_TOKEN: str = Field(..., env="SMARTDAILI_SCRAPER_TOKEN")
+    
     class Config:
         env_file = ".env"  # 指定 .env 文件路径
         env_file_encoding = 'utf-8'

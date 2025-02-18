@@ -24,5 +24,5 @@ class Bot:
         self.application.add_handler(start_handler)
     
     def add_message_group(self):
-        echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), bot_message.echo)
+        echo_handler = MessageHandler(filters.TEXT & (~filters.COMMAND), bot_message.search_index)
         self.application.add_handler(echo_handler)

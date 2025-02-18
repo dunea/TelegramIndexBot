@@ -1,7 +1,8 @@
 from pydantic import BaseModel
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 from app.models import TmeIndex, TmeIndexType  # 假设 TmeIndex 和 TmeIndexType 已定义
+from app.schemas.paging_base import PagingBase
 
 
 # Pydantic模型
@@ -21,6 +22,10 @@ class TmeIndexBase(BaseModel):
     # 通过设置 orm_mode 来支持从 SQLAlchemy 实例加载数据
     class Config:
         orm_mode = True
+
+
+class TmeIndexBaseList(PagingBase):
+    list: List[TmeIndexBase]
 
 
 # 用于返回的模型

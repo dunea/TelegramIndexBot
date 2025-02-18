@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 from sqlalchemy.orm import mapped_column, DeclarativeBase, Mapped
@@ -24,6 +24,7 @@ from app.core.database import Base
 class TmeIndexType(enum.Enum):
     GROUP = 'group'
     CHANNEL = 'channel'
+    BOT = 'bot'
 
 
 class TmeIndex(Base):
@@ -38,5 +39,6 @@ class TmeIndex(Base):
     count_view: Mapped[int] = mapped_column(Integer, default=0)
     invalid_at: Mapped[Optional[datetime]] = mapped_column(DateTime, index=True)
     last_gather_at: Mapped[Optional[datetime]] = mapped_column(DateTime, index=True)
-    create_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), index=True)
-    update_at: Mapped[datetime] = mapped_column(DateTime, default=func.now(), onupdate=func.now(), index=True)
+    create_at: Mapped[datetime] = mapped_column(DateTime, default=lambda: datetime.now(timezone.utc), index=True)
+    update_at: Mapped[datetime] = mapped_column(
+        DateTime, default=lambda: datetime.now(timezone.utc), onupdate=lambda: datetime.now(timezone.utc), index=True)
