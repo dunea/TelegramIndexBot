@@ -143,6 +143,13 @@ class IndexService:
                 raise ValueError("删除的索引不存在")
             
             try:
+                session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).delete()
+                session.commit()
+            except Exception as e:
+                logger.info(f"从数据库删除索引发生错误: {_id}")
+                raise Exception("从数据库删除索引发生错误")
+            
+            try:
                 self.meilisearch.index.delete_document(_id)
             except Exception as e:
                 session.rollback()

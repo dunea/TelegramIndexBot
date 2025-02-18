@@ -13,7 +13,7 @@ class TmeIndexBase(BaseModel):
     username: str
     type: TmeIndexType
     nickname: str
-    desc: str
+    desc: Optional[str]
     count_members: int
     count_view: int
     invalid_at: Optional[datetime]
@@ -36,5 +36,5 @@ class TmeIndexCreate(BaseModel):
     type: TmeIndexType = Field(...)
     username: str = Field(...)
     nickname: str = Field(...)
-    desc: str = Field(default=0)
+    desc: Optional[str] = Field(default=None)
     count_members: int = Field(...)
