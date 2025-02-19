@@ -51,23 +51,27 @@ class Bot:
     
     def add_command_group(self):
         self.application.add_handler(CommandHandler('start', bot_command.start))
+        self.application.add_handler(CommandHandler('add', bot_command.add))
     
     def add_message_group(self):
-        self.application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), bot_message.search_index))
+        self.application.add_handler(
+            MessageHandler(
+                filters.TEXT & ~filters.COMMAND & ~filters.Document.ALL & ~filters.Regex(r'http[s]?://'),
+                bot_message.search_index
+            )
+        )
     
     def add_button_group(self):
         self.application.add_handler(
             CallbackQueryHandler(
                 bot_button.search_page_switch,
-                pattern=r'^search_paging:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)$',
-                block=True
+                pattern=r'^search_paging:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)$'
             )
         )
         self.application.add_handler(
             CallbackQueryHandler(
                 bot_button.search_type_switch,
-                pattern=r'^search_type:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)(?::[a-zA-Z0-9]+)?$',
-                block=True
+                pattern=r'^search_type:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)(?::[a-zA-Z0-9]+)?$'
             )
         )
-        self.application.add_handler(CallbackQueryHandler(bot_button.button, block=True))
+        # self.application.add_handler(CallbackQueryHandler(bot_button.button))

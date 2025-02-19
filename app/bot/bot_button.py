@@ -28,7 +28,13 @@ async def search_page_switch(update: Update, context: ContextTypes.DEFAULT_TYPE)
     search_res = index_svc.search_index(reply_to_message_text, _type=search_paging.type, page=next_page)
     if len(search_res.list) <= 0:
         await context.bot.answer_callback_query(query.id, "没有下一页了~")
-        await query.answer()
+        current_page = next_page - 1 if next_page > 2 else 1
+        await update.callback_query.edit_message_reply_markup(
+            reply_markup=InlineKeyboardMarkup([
+                bot_utils.search_type_button_line(current_page, search_paging.type),
+                bot_utils.search_paging_button_line(current_page, False, search_paging.type)
+            ]),
+        )
         return
     
     await update.callback_query.edit_message_text(

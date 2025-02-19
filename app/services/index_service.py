@@ -173,6 +173,7 @@ class IndexService:
                 opt_params["filter"] = f"type = {models.TmeIndexType.BOT.value}"
             
             search_res = self.meilisearch.index.search(keywords, opt_params=opt_params)
+            estimated_total_hits: int = search_res["estimatedTotalHits"]
         except Exception as e:
             logger.error(f"搜索引擎发生错误: {e}")
             raise Exception("搜索引擎发生错误")
@@ -187,8 +188,9 @@ class IndexService:
             raise Exception("搜索结果序列化发生错误")
         
         return schemas.TmeIndexBaseList(
+            total=estimated_total_hits,
             page=page,
             limit=limit,
-            next=len(search_res["hits"]) >= limit,
+            next=estimated_total_hits >= page * limit,
             list=index_schemas,
         )

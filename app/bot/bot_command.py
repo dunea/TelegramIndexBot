@@ -14,3 +14,14 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/ad - 广告联盟",
         ])
     )
+
+
+async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="\r\n".join([
+            "请输入群组、频道或机器人的链接，不支持外部链接，仅仅支持Telegram的链接。",
+            "",
+            "如: https://t.me/mes_index_bot",
+        ])
+    )
