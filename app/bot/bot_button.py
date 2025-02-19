@@ -9,25 +9,27 @@ from app.core.logger import logger
 from app.core.di import di
 
 
-async def button(update: Update, context: CallbackContext):
-    query = update.callback_query
-    await query.answer()
-
-
 # 搜索分页翻页
 async def search_page_switch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    reply_to_message_text = bot_utils.get_reply_to_message_text(update)
-    if reply_to_message_text is None:
+    reply_to_message_text: str | None = query.message.to_dict()["reply_to_message"]["text"]
+    if reply_to_message_text is False:
         await query.answer()
         return
     
+    # 不是本人点击按钮
+    if query.from_user.id != query.message.to_dict()["reply_to_message"]["from"]["id"]:
+        await context.bot.answer_callback_query(query.id, "您仅能点击自己的搜索")
+        await query.answer()
+        return
+    
+    # 搜索
     search_paging = bot_utils.query_data_get_search_paging(query.data)
     next_page = search_paging.page
     index_svc = di.get(services.IndexService)
     search_res = index_svc.search_index(reply_to_message_text, _type=search_paging.type, page=next_page)
     if len(search_res.list) <= 0:
-        await context.bot.answer_callback_query(query.id, "没有下一页了~")
+        await context.bot.answer_callback_query(query.id, "没有下一页了")
         current_page = next_page - 1 if next_page > 2 else 1
         await update.callback_query.edit_message_reply_markup(
             reply_markup=InlineKeyboardMarkup([
@@ -37,6 +39,7 @@ async def search_page_switch(update: Update, context: ContextTypes.DEFAULT_TYPE)
         )
         return
     
+    # 发送结果
     await update.callback_query.edit_message_text(
         text=bot_utils.search_index_list_to_text(search_res, page=search_res.page),
         parse_mode=ParseMode.HTML,
@@ -51,11 +54,18 @@ async def search_page_switch(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # 搜索类型切换
 async def search_type_switch(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     query = update.callback_query
-    reply_to_message_text = bot_utils.get_reply_to_message_text(update)
+    reply_to_message_text: str | None = query.message.to_dict()["reply_to_message"]["text"]
     if reply_to_message_text is None:
         await query.answer()
         return
     
+    # 不是本人点击按钮
+    if query.from_user.id != query.message.to_dict()["reply_to_message"]["from"]["id"]:
+        await context.bot.answer_callback_query(query.id, "您仅能点击自己的搜索")
+        await query.answer()
+        return
+    
+    # 搜索类型检查
     index_svc = di.get(services.IndexService)
     search_type = bot_utils.query_data_get_search_type(query.data)
     if search_type.page == 1 and search_type.current is True:
@@ -63,6 +73,7 @@ async def search_type_switch(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.answer()
         return
     
+    # 搜索
     search_res = index_svc.search_index(reply_to_message_text, _type=search_type.type)
     if len(search_res.list) <= 0:
         logger.warning(" ".join([
@@ -73,6 +84,7 @@ async def search_type_switch(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await query.answer()
         return
     
+    # 发送结果
     await update.callback_query.edit_message_text(
         text=bot_utils.search_index_list_to_text(search_res),
         parse_mode=ParseMode.HTML,

@@ -2,6 +2,7 @@ import re
 from dataclasses import dataclass
 from typing import Optional, Match
 
+import emoji
 from telegram import InlineKeyboardButton, Update
 
 from app import schemas, models
@@ -18,13 +19,13 @@ def search_index_list_to_text(index_list: schemas.TmeIndexBaseList, page=1, limi
     
     for index in index_list.list:
         start_index += 1
-        message = [f"{start_index}."]
+        message = []
         if index.type == models.TmeIndexType.GROUP:
-            message.append("👥")
+            message.append(f"{start_index}.👥")
         elif index.type == models.TmeIndexType.CHANNEL:
-            message.append("📢")
+            message.append(f"{start_index}.📢")
         elif index.type == models.TmeIndexType.BOT:
-            message.append("🤖")
+            message.append(f"{start_index}.🤖")
         else:
             continue
         
@@ -32,7 +33,8 @@ def search_index_list_to_text(index_list: schemas.TmeIndexBaseList, page=1, limi
         if index.count_members > 0:
             count_members = f" {_format_number(index.count_members)}"
         
-        title = f"{index.nickname[:12]}.." if len(index.nickname) > 12 else index.nickname
+        title = f"{_remove_emoji(index.nickname)[:10]}.." if len(_remove_emoji(index.nickname)) > 10 else _remove_emoji(
+            index.nickname)
         message.append(f"<a href='https://t.me/{index.username}'>{title}{count_members}</a>")
         reply_messages.append(" ".join(message))
     
@@ -107,7 +109,7 @@ def query_data_get_search_type(query: str | None) -> QuerySearchType:
     elif query_type[0] == models.TmeIndexType.BOT.value:
         return QuerySearchType(type=models.TmeIndexType.BOT, page=int(query_type[1]), current=len(query_type) == 3)
     else:
-        return QuerySearchType(type=None, page=1, current=len(query_type) == 3)
+        return QuerySearchType(type=None, page=int(query_type[1]), current=len(query_type) == 3)
 
 
 @dataclass
@@ -138,14 +140,6 @@ def query_data_get_search_paging(query: str | None) -> QuerySearchPaging:
         return QuerySearchPaging(type=None, page=int(query_type[1]))
 
 
-# 获取消息中的回复消息文字内容
-def get_reply_to_message_text(update: Update) -> str | None:
-    try:
-        return update.callback_query.message.to_dict()["reply_to_message"]["text"]
-    except:
-        return None
-
-
 def _format_number(number: int) -> str:
     """
     格式化数字
@@ -160,3 +154,13 @@ def _format_number(number: int) -> str:
     else:
         k_value: int = number // 1000
         return f"{k_value}k"
+
+
+def _remove_emoji(text: str) -> str:
+    result = ""
+    for char in text:
+        if not emoji.is_emoji(char):
+            result += char
+        else:
+            result += " "
+    return result

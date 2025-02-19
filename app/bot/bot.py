@@ -74,4 +74,3 @@ class Bot:
                 pattern=r'^search_type:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)(?::[a-zA-Z0-9]+)?$'
             )
         )
-        # self.application.add_handler(CallbackQueryHandler(bot_button.button))
