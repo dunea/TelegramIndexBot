@@ -6,7 +6,7 @@ from sqlalchemy import pool
 from alembic import context
 
 from app.core import database
-from app.models import TmeIndex, TmeIndexType
+from app.models import *
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

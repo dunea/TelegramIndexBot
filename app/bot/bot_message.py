@@ -45,16 +45,6 @@ async def _send_search_no_result(update: Update, context: ContextTypes.DEFAULT_T
     )
 
 
-# 搜索没有下一页
-# async def search_no_next_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
-#     await context.bot.edit_message_reply_markup(
-#         chat_id=update.effective_chat.id,
-#         reply_markup=InlineKeyboardMarkup([
-#             bot_utils.search_type_button_line(),
-#             bot_utils.search_paging_button_line(tme_index_list.page, tme_index_list.next)
-#         ]),
-#     )
-
 # 搜索词2-10字之间
 async def _send_search_keyword_range_error(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await context.bot.send_message(
