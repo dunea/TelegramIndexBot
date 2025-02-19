@@ -127,13 +127,19 @@ class IndexService:
         
         # 添加到add_tme_index
         with self.session() as session:
-            add_tme_index = models.AddTmeIndex(
-                username=username,
-                user_chat_id=chat_id
-            )
-            session.add(add_tme_index)
-            session.commit()
-            session.refresh(add_tme_index)
+            exist = session.query(models.AddTmeIndex).filter(
+                models.AddTmeIndex.username == username,
+                models.AddTmeIndex.user_chat_id == chat_id,
+            ).one_or_none()
+            
+            if exist is None:
+                add_tme_index = models.AddTmeIndex(
+                    username=username,
+                    user_chat_id=chat_id
+                )
+                session.add(add_tme_index)
+                session.commit()
+                session.refresh(add_tme_index)
         
         return tme_index
     
