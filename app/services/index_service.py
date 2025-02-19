@@ -1,6 +1,6 @@
 import re
 from datetime import datetime, timezone
-from typing import Optional
+from typing import Optional, Mapping, Any
 
 from injector import inject
 from sqlalchemy.orm import Session, scoped_session
@@ -157,20 +157,20 @@ class IndexService:
                 raise Exception("从搜索引擎删除发生错误")
     
     # 搜索索引
-    def search_index(self, keywords: str, _type: models.TmeIndexType, page: int = 1,
+    def search_index(self, keywords: str, _type: models.TmeIndexType = None, page: int = 1,
                      limit: int = 20) -> schemas.TmeIndexBaseList:
         try:
-            opt_params = {
+            opt_params: dict[str, Any] = {
                 "offset": (page - 1) * limit,
                 "limit": limit
             }
             
             if _type == models.TmeIndexType.GROUP:
-                opt_params["filter"] = models.TmeIndexType.GROUP
+                opt_params["filter"] = f"type = {models.TmeIndexType.GROUP.value}"
             elif _type == models.TmeIndexType.CHANNEL:
-                opt_params["filter"] = models.TmeIndexType.CHANNEL
+                opt_params["filter"] = f"type = {models.TmeIndexType.CHANNEL.value}"
             elif _type == models.TmeIndexType.BOT:
-                opt_params["filter"] = models.TmeIndexType.BOT
+                opt_params["filter"] = f"type = {models.TmeIndexType.BOT.value}"
             
             search_res = self.meilisearch.index.search(keywords, opt_params=opt_params)
         except Exception as e:
@@ -179,7 +179,7 @@ class IndexService:
         
         try:
             index_schemas = []
-            for search_item in search_res:
+            for search_item in search_res["hits"]:
                 index_schema = schemas.TmeIndexBase.model_validate(search_item)
                 index_schemas.append(index_schema)
         except Exception as e:
@@ -189,6 +189,6 @@ class IndexService:
         return schemas.TmeIndexBaseList(
             page=page,
             limit=limit,
-            next=True if len(search_res) >= limit else False,
+            next=len(search_res["hits"]) >= limit,
             list=index_schemas,
         )

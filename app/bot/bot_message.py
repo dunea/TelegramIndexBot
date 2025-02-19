@@ -1,18 +1,62 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from app import services, models
 from app.bot import bot_utils
+from app.core.logger import logger
 from app.core.di import di
 
 
+# 搜索索引
 async def search_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
     index_svc = di.get(services.IndexService)
-    tme_index_list = index_svc.search_index(update.message.text, models.TmeIndexType)
+    search_res = index_svc.search_index(update.message.text)
+    if len(search_res.list) <= 0:
+        logger.warning(f"用户 [{update.effective_chat.id}] 搜索词 [{update.message.text}] 结果为空")
+        await send_search_no_result(update, context)
+        return
+    
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
-        text=bot_utils.tem_index_base_list_to_text(tme_index_list),
+        text=bot_utils.search_index_list_to_text(search_res),
         parse_mode=ParseMode.HTML,
-        reply_to_message_id=update.message.reply_to_message.message_id,
+        reply_markup=InlineKeyboardMarkup([
+            bot_utils.search_type_button_line(1),
+            bot_utils.search_paging_button_line(search_res.page, search_res.next)
+        ]),
+        reply_to_message_id=update.message.message_id,
+        disable_web_page_preview=True,
+    )
+
+
+# 搜索没有找到相关结果
+async def send_search_no_result(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="没有找到相关结果",
+        parse_mode=ParseMode.HTML,
+        reply_to_message_id=update.message.message_id,
+        disable_web_page_preview=True,
+    )
+
+
+# 搜索没有下一页
+# async def search_no_next_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
+#     await context.bot.edit_message_reply_markup(
+#         chat_id=update.effective_chat.id,
+#         reply_markup=InlineKeyboardMarkup([
+#             bot_utils.search_type_button_line(),
+#             bot_utils.search_paging_button_line(tme_index_list.page, tme_index_list.next)
+#         ]),
+#     )
+
+# 搜索词无效
+async def send_search_word_invalid(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="搜索词无效",
+        parse_mode=ParseMode.HTML,
+        reply_to_message_id=update.message.message_id,
+        disable_web_page_preview=True,
     )

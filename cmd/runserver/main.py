@@ -1,6 +1,8 @@
 import asyncio
 import os
 import sys
+import time
+
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -16,6 +18,7 @@ sys.path.insert(0, project_root)
 from app.core.settings import settings
 from app.api.middlewares.exception import exception_handler
 from app.api.v1 import index_route
+from app.bot import Bot
 
 
 def run_api():
@@ -40,12 +43,34 @@ def run_api():
     asyncio.run(server.serve())
 
 
+def run_bot():
+    Bot(settings.BOT_TOKEN).run_polling()
+
+
 if __name__ == '__main__':
     # 创建进程对象
     p_run_api = multiprocessing.Process(target=run_api)
+    p_run_bot = multiprocessing.Process(target=run_bot)
     
     # 启动进程
     p_run_api.start()
+    p_run_bot.start()
     
     # 等待进程结束
-    p_run_api.join()
+    try:
+        while p_run_api.is_alive() and p_run_bot.is_alive():
+            time.sleep(0.1)
+        
+        # 若有一个进程结束，终止另一个进程
+        if p_run_api.is_alive():
+            p_run_api.terminate()
+            p_run_api.join()
+        if p_run_bot.is_alive():
+            p_run_bot.terminate()
+            p_run_bot.join()
+    except KeyboardInterrupt:
+        # 若用户手动中断，终止所有进程
+        p_run_api.terminate()
+        p_run_bot.terminate()
+        p_run_api.join()
+        p_run_bot.join()
