@@ -112,21 +112,30 @@ class IndexService:
     # 添加索引于链接
     def add_index_by_tme_link(self, tme_link: str) -> schemas.TmeIndexBase:
         # 正则获取tme_link
-        usernames = []
-        pattern = r"url='https://t.me/([^/?')]{3,32})"
-        matches = re.findall(pattern, tme_link)
-        if matches:
-            for item in matches:
-                if len(item) > 0:
-                    usernames.append(item)
-        if len(usernames) == 0:
-            logger.debug(f"未检测到有效的Telegram链接: {tme_link}")
-            raise ValueError("未检测到有效的Telegram链接")
-        if len(usernames) > 1:
-            logger.debug(f"每次仅能添加1个Telegram链接: {tme_link}")
-            raise ValueError("每次仅能添加1个Telegram链接")
+        username = self._re_get_tem_link_in_username_one(tme_link)
         
-        return self.add_index_by_tme(usernames[0])
+        # 添加
+        return self.add_index_by_tme(username)
+    
+    # 添加索引链接于用户
+    def add_index_tme_link_by_user(self, tme_link: str, chat_id: int) -> schemas.TmeIndexBase:
+        # 正则获取tme_link
+        username = self._re_get_tem_link_in_username_one(tme_link)
+        
+        # 添加索引于用户名
+        tme_index = self.add_index_by_tme(username)
+        
+        # 添加到add_tme_index
+        with self.session() as session:
+            add_tme_index = models.AddTmeIndex(
+                username=username,
+                user_chat_id=chat_id
+            )
+            session.add(add_tme_index)
+            session.commit()
+            session.refresh(add_tme_index)
+        
+        return tme_index
     
     # 删除索引于ID
     def del_index_by_id(self, _id: str) -> None:
@@ -194,3 +203,22 @@ class IndexService:
             next=estimated_total_hits >= page * limit,
             list=index_schemas,
         )
+    
+    # 正则获取tme_link
+    @staticmethod
+    def _re_get_tem_link_in_username_one(tme_link: str) -> str:
+        usernames = []
+        pattern = r"https://t.me/([^/?')]{3,32})"
+        matches = re.findall(pattern, tme_link)
+        if matches:
+            for item in matches:
+                if len(item) > 0:
+                    usernames.append(item)
+        if len(usernames) == 0:
+            logger.debug(f"未检测到有效的Telegram链接: {tme_link}")
+            raise ValueError("未检测到有效的Telegram链接")
+        if len(usernames) > 1:
+            logger.debug(f"每次仅能添加1个Telegram链接: {tme_link}")
+            raise ValueError("每次仅能添加1个Telegram链接")
+        
+        return usernames[0]

@@ -10,6 +10,8 @@ from app.core.di import di
 
 # 搜索索引
 async def search_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if update.message.from_user.is_bot:
+        return
     if len(update.message.text) > 10:
         await _send_search_keyword_range_error(update, context)
         return

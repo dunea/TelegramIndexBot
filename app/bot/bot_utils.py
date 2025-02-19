@@ -32,7 +32,7 @@ def search_index_list_to_text(index_list: schemas.TmeIndexBaseList, page=1, limi
         if index.count_members > 0:
             count_members = f" {_format_number(index.count_members)}"
         
-        title = index.nickname[:12] if len(index.nickname) > 12 else index.nickname
+        title = f"{index.nickname[:12]}.." if len(index.nickname) > 12 else index.nickname
         message.append(f"<a href='https://t.me/{index.username}'>{title}{count_members}</a>")
         reply_messages.append(" ".join(message))
     

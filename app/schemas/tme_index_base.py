@@ -38,3 +38,14 @@ class TmeIndexCreate(BaseModel):
     nickname: str = Field(...)
     desc: Optional[str] = Field(default=None)
     count_members: int = Field(...)
+
+
+class AddTmeIndexBase(BaseModel):
+    model_config = ConfigDict(from_attributes=True)
+    
+    id: str
+    username: str
+    user_chat_id: Optional[int]
+    gather_at: Optional[datetime]
+    create_at: datetime
+    update_at: datetime
