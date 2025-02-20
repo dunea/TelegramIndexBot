@@ -7,6 +7,9 @@ from telegram import InlineKeyboardButton, Update
 
 from app import schemas, models
 
+CONTACT_ADMIN_MESSAGE = "如您有任何问题或建议，请联系管理员！ @nuoyea"
+CLICK_OWN_SEARCH_MESSAGE = "您仅能点击自己的搜索"
+
 
 # 搜索结果列表转文字
 def search_index_list_to_text(index_list: schemas.TmeIndexBaseList, page=1, limit=20) -> Optional[str]:
@@ -138,6 +141,92 @@ def query_data_get_search_paging(query: str | None) -> QuerySearchPaging:
         return QuerySearchPaging(type=models.TmeIndexType.BOT, page=int(query_type[1]))
     else:
         return QuerySearchPaging(type=None, page=int(query_type[1]))
+
+
+# 索引转索引按钮列表
+def index_to_button_list(index_list: schemas.TmeIndexBaseList):
+    reply_markup = []
+    
+    i = (index_list.page - 1) * index_list.limit
+    for index in index_list.list:
+        i += 1
+        index_button = InlineKeyboardButton(
+            f"{i}. {index.nickname}",
+            callback_data=f"query_index:{index.id}:{index_list.page}"
+        )
+        reply_markup.append([index_button])
+    
+    # 分页按钮
+    if index_list.next is True or index_list.page > 1:
+        paging_button_line = []
+        if index_list.page > 1:
+            paging_button_line.append(
+                InlineKeyboardButton(f"上一页", callback_data=f"query_page:{index_list.page - 1}")
+            )
+        if index_list.next is True:
+            paging_button_line.append(
+                InlineKeyboardButton(f"下一页", callback_data=f"query_page:{index_list.page + 1}")
+            )
+        reply_markup.append(paging_button_line)
+    
+    return reply_markup
+
+
+@dataclass
+class QueryIndexParameter:
+    index_id: str
+    page: int
+
+
+# query_index按钮获取索引id
+def query_index_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
+    # 正则表达式匹配UUID
+    uuid_pattern = r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
+    
+    try:
+        match = re.search(uuid_pattern, query_data)
+        if match:
+            return QueryIndexParameter(
+                index_id=match.group(1),
+                page=int(match.group(2)),
+            )
+    except:
+        pass
+    
+    return None
+
+
+# query_page按钮获取页码
+def query_page_button_get_page(query_data: str) -> int | None:
+    # 正则表达式匹配UUID
+    uuid_pattern = r'^query_page:(100|[1-9][0-9]?)$'
+    
+    try:
+        match = re.search(uuid_pattern, query_data)
+        if match:
+            return int(match.group(1))
+    except:
+        pass
+    
+    return None
+
+
+# index_update按钮获取id
+def index_update_button_get_id(query_data: str) -> QueryIndexParameter | None:
+    # 正则表达式匹配UUID
+    uuid_pattern = r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
+    
+    try:
+        match = re.search(uuid_pattern, query_data)
+        if match:
+            return QueryIndexParameter(
+                index_id=match.group(1),
+                page=int(match.group(2)),
+            )
+    except:
+        pass
+    
+    return None
 
 
 def _format_number(number: int) -> str:

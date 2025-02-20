@@ -52,6 +52,7 @@ class Bot:
     def add_command_group(self):
         self.application.add_handler(CommandHandler('start', bot_command.start))
         self.application.add_handler(CommandHandler('add', bot_command.add))
+        self.application.add_handler(CommandHandler('query', bot_command.query))
     
     def add_message_group(self):
         self.application.add_handler(
@@ -72,5 +73,23 @@ class Bot:
             CallbackQueryHandler(
                 bot_button.search_type_switch,
                 pattern=r'^search_type:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)(?::[a-zA-Z0-9]+)?$'
+            )
+        )
+        self.application.add_handler(
+            CallbackQueryHandler(
+                bot_button.query_index,
+                pattern=r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
+            )
+        )
+        self.application.add_handler(
+            CallbackQueryHandler(
+                bot_button.query_page,
+                pattern=r'^query_page:(100|[1-9][0-9]?)$'
+            )
+        )
+        self.application.add_handler(
+            CallbackQueryHandler(
+                bot_button.index_update,
+                pattern=r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
             )
         )

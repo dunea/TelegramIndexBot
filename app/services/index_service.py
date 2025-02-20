@@ -85,21 +85,7 @@ class IndexService:
                     raise Exception("序列化索引发生错误")
         
         tme_info = self.tme_scraper.get_tme_info(username)
-        if tme_info.type == "invalid":
-            logger.debug(f"无法进行查询或不存在: {username}")
-            raise ValueError("无法进行查询或不存在")
-        elif tme_info.type == "user":
-            logger.debug(f"暂不支持收录用户索引: {username}")
-            raise ValueError("暂不支持收录用户索引")
-        elif tme_info.type == "group":
-            tme_type = models.TmeIndexType.GROUP
-        elif tme_info.type == "channel":
-            tme_type = models.TmeIndexType.CHANNEL
-        elif tme_info.type == "bot":
-            tme_type = models.TmeIndexType.BOT
-        else:
-            logger.debug(f"不支持的收录类型: {username}")
-            raise ValueError("不支持的收录类型")
+        tme_type = self._str_to_tme_index_type(tme_info.type)
         
         return self.add_index_by_detail(schemas.TmeIndexCreate(
             type=tme_type,
@@ -210,6 +196,81 @@ class IndexService:
             list=index_schemas,
         )
     
+    # 用户添加的索引
+    def index_by_user_add(self, chat_id: int, page=1, limit=10) -> schemas.TmeIndexBaseList:
+        with self.session() as session:
+            try:
+                add_index_list = session.query(models.AddTmeIndex).filter(
+                    models.AddTmeIndex.user_chat_id == chat_id).order_by(
+                    models.AddTmeIndex.create_at).offset((page - 1) * limit).limit(limit).all()
+            except:
+                raise Exception("查询用户添加索引发生错误")
+            
+            add_index_usernames = []
+            for add_index in add_index_list:
+                add_index_usernames.append(add_index.username)
+            
+            try:
+                index_list = session.query(models.TmeIndex).filter(
+                    models.TmeIndex.username.in_(add_index_usernames)).all()
+                index_schemas = []
+                for index_item in index_list:
+                    index_schema = schemas.TmeIndexBase.model_validate(index_item)
+                    index_schemas.append(index_schema)
+            except:
+                raise Exception("查询索引信息发生错误")
+        
+        return schemas.TmeIndexBaseList(
+            page=page,
+            limit=limit,
+            next=len(add_index_list) >= limit,
+            list=index_schemas,
+        )
+    
+    # 查询索引于id
+    def query_index_by_id(self, _id: str) -> Optional[schemas.TmeIndexBase]:
+        with self.session() as session:
+            try:
+                index = session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).first()
+            except:
+                raise Exception("查询索引数据库发生错误")
+            if index is None:
+                return None
+            
+            return schemas.TmeIndexBase.model_validate(index)
+    
+    # 更新索引于id
+    def update_index_by_id(self, _id: str) -> Optional[schemas.TmeIndexBase]:
+        with self.session() as session:
+            # todo 判断tme所有权
+            # 从tme_index获取信息
+            try:
+                index = session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).one_or_none()
+            except:
+                raise Exception("查询索引数据库发生错误")
+            if index is None:
+                return None
+            
+            # todo 判断今天是否更新了
+            # if index.last_gather_at is not None and
+            
+            tme_info = self.tme_scraper.get_tme_info(str(index.username))
+            tme_type = self._str_to_tme_index_type(tme_info.type)
+            try:
+                session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).update({
+                    models.TmeIndex.nickname: tme_info.nickname,
+                    models.TmeIndex.desc: tme_info.description,
+                    models.TmeIndex.count_members: tme_info.count_members if tme_info.count_members is not None else 0,
+                    models.TmeIndex.type: tme_type,
+                    models.TmeIndex.last_gather_at: datetime.now(timezone.utc),
+                })
+                session.commit()
+                session.refresh(index)
+            except:
+                raise Exception("更新信息到数据库发生错误")
+            
+            return schemas.TmeIndexBase.model_validate(index)
+    
     # 正则获取tme_link
     @staticmethod
     def _re_get_tem_link_in_username_one(tme_link: str) -> str:
@@ -228,3 +289,20 @@ class IndexService:
             raise ValueError("每次仅能添加1个Telegram链接")
         
         return usernames[0]
+    
+    @staticmethod
+    def _str_to_tme_index_type(type_str: str) -> models.TmeIndexType:
+        if type_str == "invalid":
+            raise ValueError("无法进行查询或不存在")
+        elif type_str == "user":
+            raise ValueError("暂不支持收录用户索引")
+        elif type_str == "group":
+            tme_type = models.TmeIndexType.GROUP
+        elif type_str == "channel":
+            tme_type = models.TmeIndexType.CHANNEL
+        elif type_str == "bot":
+            tme_type = models.TmeIndexType.BOT
+        else:
+            raise ValueError("不支持的收录类型")
+        
+        return tme_type

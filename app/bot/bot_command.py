@@ -1,8 +1,9 @@
-from telegram import Update
+from telegram import Update, InlineKeyboardMarkup
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
 from app import services
+from app.bot import bot_utils
 from app.core.di import di
 
 
@@ -16,6 +17,9 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/add - 添加收录",
             "/query - 我的收录",
             "/ad - 广告联盟",
+            "/ocs - 建议反馈",
+            "",
+            bot_utils.CONTACT_ADMIN_MESSAGE
         ])
     )
 
@@ -30,7 +34,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 "/add 要收录的公开链接 (必须为https://t.me/开头，可以从群组信息里获取公开链接)",
                 "/add https://t.me/mes_index_bot",
                 "",
-                "如您有任何问题或建议，请联系管理员！ @nuoyea"
+                bot_utils.CONTACT_ADMIN_MESSAGE
             ])
         )
         return
@@ -69,9 +73,55 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"<strong>描述:</strong> {tme_index.desc if tme_index.desc else '没有描述'}",
             f"<strong>收录时间:</strong> {tme_index.create_at}",
             "",
-            "如您有任何问题或建议，请联系志愿者！ @nuoyea"
+            bot_utils.CONTACT_ADMIN_MESSAGE
         ]),
         parse_mode=ParseMode.HTML,
         reply_to_message_id=update.message.message_id,
+        disable_web_page_preview=True,
+    )
+
+
+async def query(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    index_svc = di.get(services.IndexService)
+    try:
+        index_list = index_svc.index_by_user_add(update.message.from_user.id)
+    except Exception as e:
+        # 查询失败通知
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="\r\n".join([
+                "查询您收录的群组时发送错误，请重试！",
+                "",
+                bot_utils.CONTACT_ADMIN_MESSAGE
+            ]),
+            parse_mode=ParseMode.HTML,
+            reply_to_message_id=update.message.message_id,
+            disable_web_page_preview=True,
+        )
+        return
+    
+    if len(index_list.list) == 0:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text="\r\n".join([
+                "没有找到您收录的群组，请先收录群组后再查询！",
+                "",
+                bot_utils.CONTACT_ADMIN_MESSAGE
+            ]),
+            parse_mode=ParseMode.HTML,
+            reply_to_message_id=update.message.message_id,
+            disable_web_page_preview=True,
+        )
+        return
+    
+    # 收录成功通知
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text="您收录的群组如下:",
+        parse_mode=ParseMode.HTML,
+        reply_to_message_id=update.message.message_id,
+        reply_markup=InlineKeyboardMarkup(
+            bot_utils.index_to_button_list(index_list)
+        ),
         disable_web_page_preview=True,
     )
