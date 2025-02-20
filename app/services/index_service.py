@@ -1,5 +1,5 @@
 import re
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional, Mapping, Any
 
 from injector import inject
@@ -240,9 +240,8 @@ class IndexService:
             return schemas.TmeIndexBase.model_validate(index)
     
     # 更新索引于id
-    def update_index_by_id(self, _id: str) -> Optional[schemas.TmeIndexBase]:
+    def update_index_by_id(self, _id: str, chat_id: int = None) -> Optional[schemas.TmeIndexBase]:
         with self.session() as session:
-            # todo 判断tme所有权
             # 从tme_index获取信息
             try:
                 index = session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).one_or_none()
@@ -251,8 +250,14 @@ class IndexService:
             if index is None:
                 return None
             
-            # todo 判断今天是否更新了
-            # if index.last_gather_at is not None and
+            # 判断今天是否更新了
+            now = datetime.now(timezone.utc)
+            six_hours_ago = now - timedelta(hours=6)
+            
+            if index.last_gather_at:
+                last_gather_at_aware = index.last_gather_at.replace(tzinfo=timezone.utc)
+                if six_hours_ago <= last_gather_at_aware <= now:
+                    raise ValueError("每6小时仅能更新1次")
             
             tme_info = self.tme_scraper.get_tme_info(str(index.username))
             tme_type = self._str_to_tme_index_type(tme_info.type)

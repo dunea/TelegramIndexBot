@@ -140,6 +140,7 @@ async def query_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="\r\n".join([
             f"<strong>标题:</strong> {index.nickname}",
             f"<strong>链接:</strong> https://t.me/{index.username}",
+            f"<strong>人数:</strong> {index.count_members}",
             f"<strong>描述:</strong> {index.desc if index.desc else '没有描述'}",
             f"<strong>收录时间:</strong> {index.create_at}",
             f"<strong>更新时间:</strong> {index.last_gather_at}",
@@ -255,6 +256,7 @@ async def index_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
         text="\r\n".join([
             f"<strong>标题:</strong> {index.nickname}",
             f"<strong>链接:</strong> https://t.me/{index.username}",
+            f"<strong>人数:</strong> {index.count_members}",
             f"<strong>描述:</strong> {index.desc if index.desc else '没有描述'}",
             f"<strong>收录时间:</strong> {index.create_at}",
             f"<strong>更新时间:</strong> {index.last_gather_at}",
