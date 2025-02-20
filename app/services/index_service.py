@@ -130,9 +130,9 @@ class IndexService:
             exist = session.query(models.AddTmeIndex).filter(
                 models.AddTmeIndex.username == username,
                 models.AddTmeIndex.user_chat_id == chat_id,
-            ).one_or_none()
+            ).count()
             
-            if exist is None:
+            if exist > 0:
                 add_tme_index = models.AddTmeIndex(
                     username=username,
                     user_chat_id=chat_id
