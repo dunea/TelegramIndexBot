@@ -5,7 +5,8 @@ from typing import Optional, Match
 import emoji
 from telegram import InlineKeyboardButton, Update
 
-from app import schemas, models
+from app import schemas, models, services
+from app.core.di import di
 
 CONTACT_ADMIN_MESSAGE = "如您有任何问题或建议，请联系管理员！ @nuoyea"
 CLICK_OWN_SEARCH_MESSAGE = "您仅能点击自己的搜索"
@@ -146,30 +147,47 @@ def query_data_get_search_paging(query: str | None) -> QuerySearchPaging:
 # 索引转索引按钮列表
 def index_to_button_list(index_list: schemas.TmeIndexBaseList):
     reply_markup = []
-    
-    i = (index_list.page - 1) * index_list.limit
-    for index in index_list.list:
-        i += 1
-        index_button = InlineKeyboardButton(
-            f"{i}. {index.nickname}",
-            callback_data=f"query_index:{index.id}:{index_list.page}"
-        )
-        reply_markup.append([index_button])
-    
-    # 分页按钮
-    if index_list.next is True or index_list.page > 1:
-        paging_button_line = []
-        if index_list.page > 1:
-            paging_button_line.append(
-                InlineKeyboardButton(f"上一页", callback_data=f"query_page:{index_list.page - 1}")
-            )
-        if index_list.next is True:
-            paging_button_line.append(
-                InlineKeyboardButton(f"下一页", callback_data=f"query_page:{index_list.page + 1}")
-            )
-        reply_markup.append(paging_button_line)
+    query_data_svc = di.get(services.QueryDataService)
+    try:
+        i = (index_list.page - 1) * index_list.limit
+        for index in index_list.list:
+            i += 1
+            query_data = query_data_svc.set_query_parameter({"index_id": index.id, "page": index_list.page})
+            reply_markup.append([InlineKeyboardButton(
+                f"{i}. {index.nickname}",
+                callback_data=f"query_index:{query_data.id}"
+            )])
+        
+        # 分页按钮
+        if index_list.next is True or index_list.page > 1:
+            paging_button_line = []
+            if index_list.page > 1:
+                query_data = query_data_svc.set_query_parameter({"page": index_list.page - 1})
+                paging_button_line.append(
+                    InlineKeyboardButton(f"上一页", callback_data=f"query_page:{query_data.id}")
+                )
+            if index_list.next is True:
+                query_data = query_data_svc.set_query_parameter({"page": index_list.page + 1})
+                paging_button_line.append(
+                    InlineKeyboardButton(f"下一页", callback_data=f"query_page:{query_data.id}")
+                )
+            reply_markup.append(paging_button_line)
+    except Exception as e:
+        raise e
     
     return reply_markup
+
+
+# 按钮query_data获取uuid
+def query_data_get_uuid(query_data: str) -> str:
+    uuid_pattern = r'[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}'
+    try:
+        match = re.search(uuid_pattern, query_data)
+        if match:
+            return match.group()
+        raise Exception("未找到有效按钮ID")
+    except:
+        raise Exception("获取按钮ID发生错误")
 
 
 @dataclass
@@ -178,7 +196,7 @@ class QueryIndexParameter:
     page: int
 
 
-# query_index按钮获取索引id
+# query_index按钮获取索引参数
 def query_index_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
     # 正则表达式匹配UUID
     uuid_pattern = r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
@@ -211,10 +229,28 @@ def query_page_button_get_page(query_data: str) -> int | None:
     return None
 
 
-# index_update按钮获取id
-def index_update_button_get_id(query_data: str) -> QueryIndexParameter | None:
+# index_update按钮获取参数
+def index_update_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
     # 正则表达式匹配UUID
     uuid_pattern = r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
+    
+    try:
+        match = re.search(uuid_pattern, query_data)
+        if match:
+            return QueryIndexParameter(
+                index_id=match.group(1),
+                page=int(match.group(2)),
+            )
+    except:
+        pass
+    
+    return None
+
+
+# index_delete按钮获取参数
+def index_delete_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
+    # 正则表达式匹配UUID
+    uuid_pattern = r'^index_delete:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
     
     try:
         match = re.search(uuid_pattern, query_data)

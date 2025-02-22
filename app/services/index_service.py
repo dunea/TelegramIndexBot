@@ -31,10 +31,19 @@ class IndexService:
                 raise Exception("查询索引发生错误")
             if index_ is not None:
                 try:
-                    return schemas.TmeIndexBase.model_validate(index_)
+                    index_schema = schemas.TmeIndexBase.model_validate(index_)
                 except Exception as e:
                     logger.error(f"序列化索引发生错误: {e}")
                     raise Exception("序列化索引发生错误")
+                
+                try:
+                    self.meilisearch.index.add_documents([index_schema.model_dump(mode='json')], primary_key="id")
+                except Exception as e:
+                    session.rollback()
+                    logger.error(f"添加到搜索引擎发生错误: {e}")
+                    raise Exception("添加到搜索引擎发生错误")
+                
+                return index_schema
             
             # 增加
             try:

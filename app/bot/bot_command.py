@@ -1,4 +1,4 @@
-from telegram import Update, InlineKeyboardMarkup
+from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes
 
@@ -114,14 +114,25 @@ async def query(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
         return
     
+    # 按钮组
+    try:
+        reply_markup = bot_utils.index_to_button_list(index_list)
+    except Exception as e:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"{e}",
+            parse_mode=ParseMode.HTML,
+            reply_to_message_id=update.message.message_id,
+            disable_web_page_preview=True,
+        )
+        return
+    
     # 收录成功通知
     await context.bot.send_message(
         chat_id=update.effective_chat.id,
         text="您收录的群组如下:",
         parse_mode=ParseMode.HTML,
         reply_to_message_id=update.message.message_id,
-        reply_markup=InlineKeyboardMarkup(
-            bot_utils.index_to_button_list(index_list)
-        ),
+        reply_markup=InlineKeyboardMarkup(reply_markup),
         disable_web_page_preview=True,
     )

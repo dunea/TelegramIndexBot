@@ -3,7 +3,7 @@ from telegram import Update, InlineKeyboardMarkup, InlineKeyboardButton
 from telegram.constants import ParseMode
 from telegram.ext import ContextTypes, CallbackContext
 
-from app import services
+from app import services, models
 from app.bot import bot_utils
 from app.core.logger import logger
 from app.core.di import di
@@ -111,9 +111,11 @@ async def search_type_switch(update: Update, context: ContextTypes.DEFAULT_TYPE)
 # 查询索引信息
 async def query_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    query_parameter = bot_utils.query_index_button_get_parameter(query.data)
-    if query_parameter is None:
-        await context.bot.answer_callback_query(query.id, "获取查询参数发生错误")
+    query_data_svc = di.get(services.QueryDataService)
+    try:
+        query_data = query_data_svc.get_query_parameter(bot_utils.query_data_get_uuid(query.data))
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}")
         await query.answer()
         return
     
@@ -123,9 +125,10 @@ async def query_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
         return
     
+    # 获取index信息
     index_svc = di.get(services.IndexService)
     try:
-        index = index_svc.query_index_by_id(query_parameter.index_id)
+        index = index_svc.query_index_by_id(query_data.parameter["index_id"])
     except Exception as e:
         await context.bot.answer_callback_query(query.id, f"{e}")
         await query.answer()
@@ -150,21 +153,10 @@ async def query_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(
-                    "更新",
-                    callback_data=f"index_update:{query_parameter.index_id}:{query_parameter.page}"
-                ),
-                InlineKeyboardButton(
-                    "删除",
-                    callback_data=f"index_delete:{query_parameter.index_id}:{query_parameter.page}"
-                ),
+                InlineKeyboardButton("更新", callback_data=f"index_update:{query_data.id}"),
+                InlineKeyboardButton("删除", callback_data=f"index_delete:{query_data.id}"),
             ],
-            [
-                InlineKeyboardButton(
-                    "<< 返回",
-                    callback_data=f"query_page:{query_parameter.page}"
-                ),
-            ],
+            [InlineKeyboardButton("<< 返回", callback_data=f"query_page:{query_data.id}")],
         ]),
         disable_web_page_preview=True,
     )
@@ -173,8 +165,13 @@ async def query_index(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # 查收索引列表分页翻页
 async def query_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    page_num = bot_utils.query_page_button_get_page(query.data)
-    page_num = page_num if page_num is not None else 1
+    query_data_svc = di.get(services.QueryDataService)
+    try:
+        query_data = query_data_svc.get_query_parameter(bot_utils.query_data_get_uuid(query.data))
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}")
+        await query.answer()
+        return
     
     # 不是本人点击按钮
     if query.from_user.id != query.message.to_dict()["reply_to_message"]["from"]["id"]:
@@ -184,14 +181,30 @@ async def query_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     
     index_svc = di.get(services.IndexService)
     try:
-        index_list = index_svc.index_by_user_add(update.callback_query.message.chat.id, page=page_num)
+        index_list = index_svc.index_by_user_add(
+            update.callback_query.message.chat.id,
+            page=query_data.parameter["page"]
+        )
     except Exception as e:
         # 查询失败通知
         await context.bot.answer_callback_query(query.id, f"{e}")
         await query.answer()
         return
     
-    if len(index_list.list) == 0 and page_num == 1:
+    # 按钮组
+    try:
+        reply_markup = bot_utils.index_to_button_list(index_list)
+    except Exception as e:
+        await context.bot.send_message(
+            chat_id=update.effective_chat.id,
+            text=f"{e}",
+            parse_mode=ParseMode.HTML,
+            reply_to_message_id=update.message.message_id,
+            disable_web_page_preview=True,
+        )
+        return
+    
+    if len(index_list.list) == 0 and query_data.parameter["page"] == 1:
         await update.callback_query.edit_message_text(
             text="\r\n".join([
                 "没有找到您收录的索引，请先收录索引后再查询！",
@@ -206,9 +219,7 @@ async def query_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.edit_message_text(
             text="当前页面数据为空，请继续返回上一页！",
             parse_mode=ParseMode.HTML,
-            reply_markup=InlineKeyboardMarkup(
-                bot_utils.index_to_button_list(index_list)
-            ),
+            reply_markup=InlineKeyboardMarkup(reply_markup),
             disable_web_page_preview=True,
         )
         return
@@ -216,9 +227,7 @@ async def query_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.callback_query.edit_message_text(
         text="您收录的索引如下:",
         parse_mode=ParseMode.HTML,
-        reply_markup=InlineKeyboardMarkup(
-            bot_utils.index_to_button_list(index_list)
-        ),
+        reply_markup=InlineKeyboardMarkup(reply_markup),
         disable_web_page_preview=True,
     )
 
@@ -226,9 +235,11 @@ async def query_page(update: Update, context: ContextTypes.DEFAULT_TYPE):
 # 索引更新
 async def index_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
-    index_parameter = bot_utils.index_update_button_get_id(query.data)
-    if index_parameter is None:
-        await context.bot.answer_callback_query(query.id, "获取查询参数发生错误")
+    query_data_svc = di.get(services.QueryDataService)
+    try:
+        query_data = query_data_svc.get_query_parameter(bot_utils.query_data_get_uuid(query.data))
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}")
         await query.answer()
         return
     
@@ -238,9 +249,10 @@ async def index_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
         return
     
+    # 更新索引
     index_svc = di.get(services.IndexService)
     try:
-        index = index_svc.update_index_by_id(index_parameter.index_id)
+        index = index_svc.update_index_by_id(query_data.parameter["index_id"])
     except Exception as e:
         # 查询失败通知
         await context.bot.answer_callback_query(query.id, f"{e}")
@@ -266,23 +278,43 @@ async def index_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
         reply_markup=InlineKeyboardMarkup([
             [
-                InlineKeyboardButton(
-                    "更新",
-                    callback_data=f"index_update:{index.id}:{index_parameter.page}"
-                ),
-                InlineKeyboardButton(
-                    "删除",
-                    callback_data=f"index_delete:{index.id}:{index_parameter.page}"
-                ),
+                InlineKeyboardButton("更新", callback_data=f"index_update:{query_data.id}"),
+                InlineKeyboardButton("删除", callback_data=f"index_delete:{query_data.id}"),
             ],
-            [
-                InlineKeyboardButton(
-                    "<< 返回",
-                    callback_data=f"query_page:{index_parameter.page}"
-                ),
-            ],
+            [InlineKeyboardButton("<< 返回", callback_data=f"query_page:{query_data.id}")],
         ]),
         disable_web_page_preview=True,
     )
     
     await context.bot.answer_callback_query(query.id, "更新索引信息成功")
+
+
+# 索引删除
+async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    query_data_svc = di.get(services.QueryDataService)
+    try:
+        query_data = query_data_svc.get_query_parameter(bot_utils.query_data_get_uuid(query.data))
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}")
+        await query.answer()
+        return
+    
+    # 不是本人点击按钮
+    if query.from_user.id != query.message.to_dict()["reply_to_message"]["from"]["id"]:
+        await context.bot.answer_callback_query(query.id, bot_utils.CLICK_OWN_SEARCH_MESSAGE)
+        await query.answer()
+        return
+    
+    # 编辑消息
+    await update.callback_query.edit_message_reply_markup(
+        reply_markup=InlineKeyboardMarkup([
+            [InlineKeyboardButton("确认删除", callback_data=f"index_delete_confirm:{query_data.id}")],
+            [InlineKeyboardButton("<< 返回", callback_data=f"query_index:{query_data.id}")],
+        ]),
+    )
+
+
+# 索引删除确认
+async def index_delete_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    pass

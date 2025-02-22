@@ -78,18 +78,24 @@ class Bot:
         self.application.add_handler(
             CallbackQueryHandler(
                 bot_button.query_index,
-                pattern=r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
+                pattern=r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
             )
         )
         self.application.add_handler(
             CallbackQueryHandler(
                 bot_button.query_page,
-                pattern=r'^query_page:(100|[1-9][0-9]?)$'
+                pattern=r'^query_page:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
             )
         )
         self.application.add_handler(
             CallbackQueryHandler(
                 bot_button.index_update,
-                pattern=r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
+                pattern=r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
+            )
+        )
+        self.application.add_handler(
+            CallbackQueryHandler(
+                bot_button.index_delete,
+                pattern=r'^index_delete:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
             )
         )
