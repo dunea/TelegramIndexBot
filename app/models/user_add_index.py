@@ -21,8 +21,8 @@ import enum
 from app.core.database import Base
 
 
-class AddTmeIndex(Base):
-    __tablename__ = 'add_tme_index'
+class UserAddIndex(Base):
+    __tablename__ = 'user_add_index'
     
     id: Mapped[str] = mapped_column(String(36), primary_key=True, default=lambda: str(uuid.uuid4()), index=True)
     username: Mapped[str] = mapped_column(String(32), nullable=False, index=True)

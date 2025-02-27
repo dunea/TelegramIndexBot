@@ -57,7 +57,8 @@ class Bot:
     def add_message_group(self):
         self.application.add_handler(
             MessageHandler(
-                filters.TEXT & ~filters.COMMAND & ~filters.Document.ALL & ~filters.Regex(r'http[s]?://'),
+                filters.TEXT & ~filters.COMMAND & ~filters.Document.ALL & ~filters.Regex(
+                    r'http[s]?://') & ~filters.REPLY,
                 bot_message.search_index
             )
         )
@@ -66,29 +67,39 @@ class Bot:
         buttons = [
             {
                 "func": bot_button.search_page_switch,
-                "pattern": r'^search_paging:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)$'
+                "pattern": r'^search_paging:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)$',
+                "block": False,
             },
             {
                 "func": bot_button.search_type_switch,
-                "pattern": r'^search_type:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)(?::[a-zA-Z0-9]+)?$'
+                "pattern": r'^search_type:([a-zA-Z0-9]{1,20}):(100|[1-9][0-9]?)(?::[a-zA-Z0-9]+)?$',
+                "block": False,
             },
             {
                 "func": bot_button.query_index,
-                "pattern": r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
+                "pattern": r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',
+                "block": False,
             },
             {
                 "func": bot_button.query_page,
-                "pattern": r'^query_page:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
+                "pattern": r'^query_page:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',
+                "block": False,
             },
             {
                 "func": bot_button.index_update,
-                "pattern": r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
+                "pattern": r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',
+                "block": False,
             },
             {
                 "func": bot_button.index_delete,
-                "pattern": r'^index_delete:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$'
+                "pattern": r'^index_delete:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',
+                "block": False,
             },
         ]
         
         for button in buttons:
-            self.application.add_handler(CallbackQueryHandler(button["func"], pattern=button["pattern"]))
+            self.application.add_handler(CallbackQueryHandler(
+                button["func"],
+                pattern=button["pattern"],
+                block=button["block"]
+            ))

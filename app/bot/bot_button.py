@@ -306,7 +306,42 @@ async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.answer()
         return
     
+    # 获取index信息
+    index_svc = di.get(services.IndexService)
+    try:
+        index = index_svc.query_index_by_id(query_data.parameter["index_id"])
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}")
+        await query.answer()
+        return
+    
+    if index is None:
+        await context.bot.answer_callback_query(query.id, "删除的索引未被收录")
+        await query.answer()
+        return
+    
     # 编辑消息
+    await update.callback_query.edit_message_text(
+        text="\r\n".join([
+            f"<strong>标题:</strong> {index.nickname}",
+            f"<strong>链接:</strong> https://t.me/{index.username}",
+            f"<strong>人数:</strong> {index.count_members}",
+            f"<strong>描述:</strong> {index.desc if index.desc else '没有描述'}",
+            f"<strong>收录时间:</strong> {index.create_at}",
+            f"<strong>更新时间:</strong> {index.last_gather_at}",
+            "",
+            "删除索引并不会把索引从搜索结果中删除，仅仅从你的查询列表中进行删除。如果你想索引不被引擎"
+        ]),
+        parse_mode=ParseMode.HTML,
+        reply_markup=InlineKeyboardMarkup([
+            [
+                InlineKeyboardButton("更新", callback_data=f"index_update:{query_data.id}"),
+                InlineKeyboardButton("删除", callback_data=f"index_delete:{query_data.id}"),
+            ],
+            [InlineKeyboardButton("<< 返回", callback_data=f"query_page:{query_data.id}")],
+        ]),
+        disable_web_page_preview=True,
+    )
     await update.callback_query.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("确认删除", callback_data=f"index_delete_confirm:{query_data.id}")],

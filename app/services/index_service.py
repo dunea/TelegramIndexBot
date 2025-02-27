@@ -122,13 +122,13 @@ class IndexService:
         
         # 添加到add_tme_index
         with self.session() as session:
-            exist = session.query(models.AddTmeIndex).filter(
-                models.AddTmeIndex.username == username,
-                models.AddTmeIndex.user_chat_id == chat_id,
+            exist = session.query(models.UserAddIndex).filter(
+                models.UserAddIndex.username == username,
+                models.UserAddIndex.user_chat_id == chat_id,
             ).count()
             
-            if exist > 0:
-                add_tme_index = models.AddTmeIndex(
+            if exist <= 0:
+                add_tme_index = models.UserAddIndex(
                     username=username,
                     user_chat_id=chat_id
                 )
@@ -143,7 +143,9 @@ class IndexService:
         with self.session() as session:
             # 查询
             try:
-                index_ = session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).one_or_none()
+                index_ = session.query(models.TmeIndex).filter(
+                    models.TmeIndex.id == _id
+                ).one_or_none()
             except Exception as e:
                 logger.error(f"查询索引发生错误: {e}")
                 raise Exception("查询索引发生错误")
@@ -165,6 +167,30 @@ class IndexService:
                 session.rollback()
                 logger.error(f"从搜索引擎删除发生错误: {e}")
                 raise Exception("从搜索引擎删除发生错误")
+    
+    # 删除索引根据username于用户
+    def del_index_in_username_by_user(self, username: str, chat_id: int):
+        with self.session() as session:
+            # 查询
+            try:
+                index_ = session.query(models.UserAddIndex).filter(
+                    models.UserAddIndex.username == username,
+                    models.UserAddIndex.user_chat_id == chat_id,
+                ).first()
+            except Exception as e:
+                logger.error(f"查询用户索引发生错误: {e}")
+                raise Exception("查询用户索引发生错误")
+            
+            if index_ is None:
+                logger.info(f"删除的用户索引不存在: {username}")
+                raise ValueError("删除的用户索引不存在")
+            
+            try:
+                session.query(models.UserAddIndex).filter(models.UserAddIndex.id == index_.id).delete()
+                session.commit()
+            except Exception as e:
+                logger.info(f"删除用户索引发生错误: {index_.id}")
+                raise Exception("删除用户索引发生错误")
     
     # 搜索索引
     def search_index(self, keywords: str, _type: models.TmeIndexType = None, page: int = 1,
@@ -209,9 +235,9 @@ class IndexService:
     def index_by_user_add(self, chat_id: int, page=1, limit=10) -> schemas.TmeIndexBaseList:
         with self.session() as session:
             try:
-                add_index_list = session.query(models.AddTmeIndex).filter(
-                    models.AddTmeIndex.user_chat_id == chat_id).order_by(
-                    models.AddTmeIndex.create_at).offset((page - 1) * limit).limit(limit).all()
+                add_index_list = session.query(models.UserAddIndex).filter(
+                    models.UserAddIndex.user_chat_id == chat_id).order_by(
+                    models.UserAddIndex.create_at).offset((page - 1) * limit).limit(limit).all()
             except:
                 raise Exception("查询用户添加索引发生错误")
             

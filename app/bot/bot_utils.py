@@ -37,7 +37,7 @@ def search_index_list_to_text(index_list: schemas.TmeIndexBaseList, page=1, limi
         if index.count_members > 0:
             count_members = f" {_format_number(index.count_members)}"
         
-        title = f"{_remove_emoji(index.nickname)[:10]}.." if len(_remove_emoji(index.nickname)) > 10 else _remove_emoji(
+        title = f"{_remove_emoji(index.nickname)[:15]}.." if len(_remove_emoji(index.nickname)) > 15 else _remove_emoji(
             index.nickname)
         message.append(f"<a href='https://t.me/{index.username}'>{title}{count_members}</a>")
         reply_messages.append(" ".join(message))
@@ -152,7 +152,8 @@ def index_to_button_list(index_list: schemas.TmeIndexBaseList):
         i = (index_list.page - 1) * index_list.limit
         for index in index_list.list:
             i += 1
-            query_data = query_data_svc.set_query_parameter({"index_id": index.id, "page": index_list.page})
+            query_data = query_data_svc.set_query_parameter(
+                {"index_id": index.id, "index_username": index.username, "page": index_list.page})
             reply_markup.append([InlineKeyboardButton(
                 f"{i}. {index.nickname}",
                 callback_data=f"query_index:{query_data.id}"
@@ -194,75 +195,6 @@ def query_data_get_uuid(query_data: str) -> str:
 class QueryIndexParameter:
     index_id: str
     page: int
-
-
-# query_index按钮获取索引参数
-def query_index_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
-    # 正则表达式匹配UUID
-    uuid_pattern = r'^query_index:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
-    
-    try:
-        match = re.search(uuid_pattern, query_data)
-        if match:
-            return QueryIndexParameter(
-                index_id=match.group(1),
-                page=int(match.group(2)),
-            )
-    except:
-        pass
-    
-    return None
-
-
-# query_page按钮获取页码
-def query_page_button_get_page(query_data: str) -> int | None:
-    # 正则表达式匹配UUID
-    uuid_pattern = r'^query_page:(100|[1-9][0-9]?)$'
-    
-    try:
-        match = re.search(uuid_pattern, query_data)
-        if match:
-            return int(match.group(1))
-    except:
-        pass
-    
-    return None
-
-
-# index_update按钮获取参数
-def index_update_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
-    # 正则表达式匹配UUID
-    uuid_pattern = r'^index_update:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
-    
-    try:
-        match = re.search(uuid_pattern, query_data)
-        if match:
-            return QueryIndexParameter(
-                index_id=match.group(1),
-                page=int(match.group(2)),
-            )
-    except:
-        pass
-    
-    return None
-
-
-# index_delete按钮获取参数
-def index_delete_button_get_parameter(query_data: str) -> QueryIndexParameter | None:
-    # 正则表达式匹配UUID
-    uuid_pattern = r'^index_delete:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}):(100|[1-9][0-9]?)$'
-    
-    try:
-        match = re.search(uuid_pattern, query_data)
-        if match:
-            return QueryIndexParameter(
-                index_id=match.group(1),
-                page=int(match.group(2)),
-            )
-    except:
-        pass
-    
-    return None
 
 
 def _format_number(number: int) -> str:

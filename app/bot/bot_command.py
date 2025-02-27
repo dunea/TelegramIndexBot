@@ -31,7 +31,7 @@ async def add(update: Update, context: ContextTypes.DEFAULT_TYPE):
             text="\r\n".join([
                 "请输入群组、频道或机器人的链接，不支持外部链接，命令示例如下。",
                 "",
-                "/add 要收录的公开链接 (必须为https://t.me/开头，可以从群组信息里获取公开链接)",
+                "/add 要收录的公开链接 (必须为 https://t.me/ 开头，可以从群组信息里获取公开链接)",
                 "/add https://t.me/mes_index_bot",
                 "",
                 bot_utils.CONTACT_ADMIN_MESSAGE
