@@ -1,4 +1,5 @@
 import os
+from typing import Optional
 
 from pydantic.v1 import Field
 from pydantic_settings import BaseSettings
@@ -9,6 +10,10 @@ from app.core.logger import logger
 class Settings(BaseSettings):
     # 机器人
     BOT_TOKEN: str = Field(..., env="BOT_TOKEN")
+    WEBHOOK_SECRET: Optional[str] = None
+    WEBHOOK_URL: Optional[str] = None
+    WEBHOOK_PORT: int = 5000
+    WEBHOOK_HOST: str = '0.0.0.0'
     
     # 数据库
     DB_IP: str = Field(..., env="DB_IP")

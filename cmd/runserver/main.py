@@ -3,6 +3,7 @@ import os
 import sys
 import time
 
+import telegram
 import uvicorn
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -44,7 +45,22 @@ def run_api():
 
 
 def run_bot():
-    Bot(settings.BOT_TOKEN).run_polling()
+    _bot = Bot(settings.BOT_TOKEN)
+    
+    if settings.WEBHOOK_URL is not None and settings.WEBHOOK_SECRET is not None:
+        _bot.application.run_webhook(
+            listen=settings.WEBHOOK_HOST,
+            port=settings.WEBHOOK_PORT,
+            secret_token=settings.WEBHOOK_SECRET,
+            webhook_url=settings.WEBHOOK_URL,
+            allowed_updates=telegram.Update.ALL_TYPES,
+            drop_pending_updates=True
+        )
+    else:
+        _bot.application.run_polling(
+            allowed_updates=telegram.Update.ALL_TYPES,
+            drop_pending_updates=True
+        )
 
 
 if __name__ == '__main__':
