@@ -57,6 +57,10 @@ class Bot:
                     CallbackQueryHandler(
                         bot_button.index_delete, block=False,
                         pattern=r'^index_delete:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',
+                    ),
+                    CallbackQueryHandler(
+                        bot_button.index_delete_confirm, block=False,
+                        pattern=r'^index_delete_confirm:([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})$',
                     )
                 ],
                 # 消息

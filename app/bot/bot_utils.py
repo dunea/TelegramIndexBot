@@ -284,7 +284,7 @@ def index_to_button_list(index_list: schemas.TmeIndexBaseList):
             query_data = query_data_svc.set_query_parameter(
                 {"index_id": index.id, "index_username": index.username, "page": index_list.page})
             reply_markup.append([InlineKeyboardButton(
-                f"{i}. {index.nickname}",
+                f"{index.nickname}",
                 callback_data=f"query_index:{query_data.id}"
             )])
         

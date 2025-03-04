@@ -290,7 +290,7 @@ async def index_update(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 # 索引删除
-async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
     query = update.callback_query
     query_data_svc = di.get(services.QueryDataService)
     try:
@@ -298,13 +298,13 @@ async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await context.bot.answer_callback_query(query.id, f"{e}")
         await query.answer()
-        return
+        return False
     
     # 不是本人点击按钮
     if query.from_user.id != query.message.to_dict()["reply_to_message"]["from"]["id"]:
         await context.bot.answer_callback_query(query.id, bot_utils.CLICK_OWN_SEARCH_MESSAGE)
         await query.answer()
-        return
+        return False
     
     # 获取index信息
     index_svc = di.get(services.IndexService)
@@ -313,12 +313,12 @@ async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
     except Exception as e:
         await context.bot.answer_callback_query(query.id, f"{e}")
         await query.answer()
-        return
+        return False
     
     if index is None:
         await context.bot.answer_callback_query(query.id, "删除的索引未被收录")
         await query.answer()
-        return
+        return False
     
     # 编辑消息
     await update.callback_query.edit_message_text(
@@ -330,26 +330,47 @@ async def index_delete(update: Update, context: ContextTypes.DEFAULT_TYPE):
             f"<strong>收录时间:</strong> {index.create_at}",
             f"<strong>更新时间:</strong> {index.last_gather_at}",
             "",
-            "删除索引并不会把索引从搜索结果中删除，仅仅从你的查询列表中进行删除。如果你想索引不被引擎"
+            "删除索引并不会把索引从引擎中删除，仅仅从你的查询列表中进行删除。",
+            "如果你想索引不被引擎收录理应把群组设置为私密群。",
         ]),
         parse_mode=ParseMode.HTML,
-        reply_markup=InlineKeyboardMarkup([
-            [
-                InlineKeyboardButton("更新", callback_data=f"index_update:{query_data.id}"),
-                InlineKeyboardButton("删除", callback_data=f"index_delete:{query_data.id}"),
-            ],
-            [InlineKeyboardButton("<< 返回", callback_data=f"query_page:{query_data.id}")],
-        ]),
-        disable_web_page_preview=True,
-    )
-    await update.callback_query.edit_message_reply_markup(
         reply_markup=InlineKeyboardMarkup([
             [InlineKeyboardButton("确认删除", callback_data=f"index_delete_confirm:{query_data.id}")],
             [InlineKeyboardButton("<< 返回", callback_data=f"query_index:{query_data.id}")],
         ]),
+        disable_web_page_preview=True,
     )
+    
+    return True
 
 
 # 索引删除确认
-async def index_delete_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    pass
+async def index_delete_confirm(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+    query = update.callback_query
+    query_data_svc = di.get(services.QueryDataService)
+    query_id = bot_utils.query_data_get_uuid(query.data)
+    try:
+        query_data = query_data_svc.get_query_parameter(query_id)
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}", show_alert=True)
+        await query.answer()
+        return False
+    
+    # 不是本人点击按钮
+    if query.from_user.id != query.message.to_dict()["reply_to_message"]["from"]["id"]:
+        await context.bot.answer_callback_query(query.id, bot_utils.CLICK_OWN_SEARCH_MESSAGE, show_alert=True)
+        await query.answer()
+        return False
+    
+    # 删除用户添加的索引
+    index_svc = di.get(services.IndexService)
+    try:
+        index_svc.del_index_in_username_by_user(query_data.parameter["index_username"], query.from_user.id)
+    except Exception as e:
+        await context.bot.answer_callback_query(query.id, f"{e}", show_alert=True)
+        await query.answer()
+        return False
+    
+    await query_page(update, context)
+    
+    return True

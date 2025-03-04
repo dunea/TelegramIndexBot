@@ -1,3 +1,4 @@
+import copy
 import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Mapping, Any
@@ -69,8 +70,8 @@ class IndexService:
                 session.rollback()
                 logger.error(f"添加到搜索引擎发生错误: {e}")
                 raise Exception("添加到搜索引擎发生错误")
-        
-        return index_schema
+            
+            return index_schema
     
     # 添加索引于用户名
     def add_index_by_tme(self, username: str) -> schemas.TmeIndexBase:
@@ -169,13 +170,13 @@ class IndexService:
                 raise Exception("从搜索引擎删除发生错误")
     
     # 删除索引根据username于用户
-    def del_index_in_username_by_user(self, username: str, chat_id: int):
+    def del_index_in_username_by_user(self, username: str, user_chat_id: int):
         with self.session() as session:
             # 查询
             try:
                 index_ = session.query(models.UserAddIndex).filter(
                     models.UserAddIndex.username == username,
-                    models.UserAddIndex.user_chat_id == chat_id,
+                    models.UserAddIndex.user_chat_id == user_chat_id,
                 ).first()
             except Exception as e:
                 logger.error(f"查询用户索引发生错误: {e}")
@@ -296,6 +297,8 @@ class IndexService:
             
             tme_info = self.tme_scraper.get_tme_info(str(index.username))
             tme_type = self._str_to_tme_index_type(tme_info.type)
+            
+            # 更新数据到数据库
             try:
                 session.query(models.TmeIndex).filter(models.TmeIndex.id == _id).update({
                     models.TmeIndex.nickname: tme_info.nickname,
@@ -309,7 +312,16 @@ class IndexService:
             except:
                 raise Exception("更新信息到数据库发生错误")
             
-            return schemas.TmeIndexBase.model_validate(index)
+            # 添加到meilisearch
+            try:
+                index_schema = schemas.TmeIndexBase.model_validate(index)
+                self.meilisearch.index.add_documents([index_schema.model_dump(mode='json')], primary_key="id")
+            except Exception as e:
+                session.rollback()
+                logger.error(f"添加到搜索引擎发生错误: {e}")
+                raise Exception("添加到搜索引擎发生错误")
+            
+            return index_schema
     
     # 正则获取tme_link
     @staticmethod

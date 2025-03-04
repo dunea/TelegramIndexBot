@@ -1,3 +1,4 @@
+import copy
 import re
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Mapping, Any, cast, Union, Dict, List
@@ -24,7 +25,11 @@ class QueryDataService:
                 session.add(data)
                 session.commit()
                 session.refresh(data)
-                return data
+                
+                # **深拷贝对象，防止 session 关闭后仍然引用 ORM**
+                detached_data = copy.deepcopy(data)
+                
+                return detached_data
             except SQLAlchemyError as e:
                 session.rollback()
                 raise Exception("设置查询参数失败") from e
@@ -43,7 +48,10 @@ class QueryDataService:
                 for data in datas:
                     session.refresh(data)
                 
-                return datas
+                # **深拷贝对象，防止 session 关闭后仍然引用 ORM**
+                detached_datas = copy.deepcopy(datas)
+                
+                return detached_datas
             except SQLAlchemyError as e:
                 session.rollback()
                 raise Exception("设置查询参数列表失败") from e
@@ -64,7 +72,11 @@ class QueryDataService:
             except Exception as e:
                 session.rollback()
                 raise Exception("更新参数失败") from e
-            return cast(models.QueryData, data)
+            
+            # **深拷贝对象，防止 session 关闭后仍然引用 ORM**
+            detached_data = copy.deepcopy(data)
+            
+            return cast(models.QueryData, detached_data)
     
     def get_query_parameter(self, _id: str) -> models.QueryData:
         with self.session() as session:
@@ -80,7 +92,11 @@ class QueryDataService:
             
             if data is None:
                 raise Exception("查询参数不存在或已过期")
-            return data
+            
+            # **深拷贝对象，防止 session 关闭后仍然引用 ORM**
+            detached_data = copy.deepcopy(data)
+            
+            return detached_data
     
     def get_query_parameters(self, _ids: list[str]) -> list[models.QueryData]:
         with self.session() as session:
@@ -92,4 +108,8 @@ class QueryDataService:
             except Exception as e:
                 session.rollback()
                 raise Exception("查询参数列表失败") from e
-            return cast(list[models.QueryData], parameters)
+            
+            # **深拷贝对象，防止 session 关闭后仍然引用 ORM**
+            detached_parameters = copy.deepcopy(parameters)
+            
+            return cast(list[models.QueryData], detached_parameters)
